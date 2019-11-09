@@ -5,9 +5,10 @@ import pandas as pd
 import numpy as np
 
 
-def paser(file_path):
-    csv_name = file_path
+def paser(raw_path, fluency_path):
+    csv_name = raw_path
     df = pd.read_csv(csv_name)
+    df_fluency = pd.read_csv(fluency_path)
 
 
     # code
@@ -112,9 +113,10 @@ def paser(file_path):
 
     # create a output panda dataframe
     output = pd.DataFrame(list(zip(parsed_CommentCount,parsed_BodyLength, parsed_UserReputation,parsed_UserViews,parsed_UserUpVotes,parsed_UserDownVotes,codes_inline,codes_pre_count,codes_pre_line,hyperlinks,edits,labels)), columns =['parsed_CommentCount','parsed_BodyLength', 'parsed_UserReputation','parsed_UserViews','parsed_UserUpVotes','parsed_UserDownVotes','InlineCode','BlockCode','BlockCodeLine','Hyperlink','Edit','Label'])
+    output = pd.concat([df_fluency, output], axis=1, sort=False) # include the fluency cols
 
 
-    output_name = csv_name.replace('.csv','_input.csv')
+    output_name = csv_name.replace('.csv','_merged.csv')
     output.to_csv(output_name)
 
 
@@ -122,8 +124,9 @@ def paser(file_path):
 
 
 if __name__ == '__main__':
-    paser("../Example Data/one_day_2018-03-01_2018-03-02.csv")
-    paser("../Example Data/one_day_2018-06-01_2018-06-02.csv")
+    paser("../Example Data/one_day_2018-03-01_2018-03-02.csv", "../Language Model/one_day_2018-03-01_2018-03-02_fluency.csv")
+    paser("../Example Data/one_day_2018-06-01_2018-06-02.csv", "../Language Model/one_day_2018-06-01_2018-06-02_fluency.csv")
+    paser("../Example Data/one_month_2018-04-01_2018-05-01.csv", "../Language Model/one_month_2018-04-01_2018-05-01_fluency.csv")
 
 
 
