@@ -1,5 +1,8 @@
 import sys
 import wordsegUtil
+import pandas as pd
+
+FILE_PATH='one_day_2018-03-01_2018-03-02.csv'
 
 # REPL and main entry point
 def repl(unigramCost, bigramCost):
@@ -53,9 +56,41 @@ def repl(unigramCost, bigramCost):
 
         print('')
 
+def calculate(unigramCost, bigramCost):
+    csv_name = FILE_PATH
+    df = pd.read_csv(csv_name)
+
+    ug = []
+    bg = []
+
+    for i in range(df.shape[0]):
+        line = df['Body'][i]
+
+        # Unigram cost.
+        grams=tuple(wordsegUtil.cleanLine(line))
+        cost=0
+        for j in range(len(grams)):
+            cost+=unigramCost(grams[j])
+        cost=cost/len(grams)
+        ug.append(cost)
+
+        cost=bigramCost(wordsegUtil.SENTENCE_BEGIN, grams[0])
+        for j in range(1,len(grams)):
+            cost+=bigramCost(grams[j-1], grams[j])
+        cost=cost/len(grams)
+        bg.append(cost)
+
+
+    # create a output panda dataframe
+    output = pd.DataFrame(list(zip(ug,bg)), columns =['unigramCost','bigramCost'])
+
+
+    output_name = csv_name.replace('.csv','_fluency.csv')
+    output.to_csv(output_name)
+
 def main():
 
-    corpus = input('Please enter training text: ')
+    corpus = 'training.txt'
 
     sys.stdout.write('Training language cost functions [corpus: %s]... ' % corpus)
     sys.stdout.flush()
@@ -65,7 +100,8 @@ def main():
     print('Done!')
     print('')
 
-    repl(unigramCost, bigramCost)
+    # repl(unigramCost, bigramCost)
+    calculate(unigramCost, bigramCost)
 
 if __name__ == '__main__':
     main()
