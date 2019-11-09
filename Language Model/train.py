@@ -1,6 +1,7 @@
 import sys
 import wordsegUtil
 import pandas as pd
+import numpy as np
 
 FILE_PATH='one_month_2018-04-01_2018-05-01.csv'
 
@@ -64,6 +65,10 @@ def calculate(unigramCost, bigramCost):
     bg = []
 
     for i in range(df.shape[0]):
+        accepted_id = df['ParentAcceptedAnswerId'][i]
+        if np.isnan(accepted_id):
+            continue
+
         line = df['Body'][i]
 
         # Unigram cost.
