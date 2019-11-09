@@ -5,23 +5,24 @@ import util
 import numpy as np
 
 # Parameters used to define the neural network.
-HIDDEN_LAYER_SIZES=(100,100,100,100,100)
+HIDDEN_LAYER_SIZES=(10,10,10,10,10)
 # ACTIVATION='logistic','tanh','relu'
 ACTIVATION='logistic'
 MAX_ITER=10000
 VERBOSE=True
-REGULARIZATION=1e-05
+REGULARIZATION=1e-04
 SOLVER='adam'
 # SOLVER='lbfgs','sgd','adam'
+TOL=1e-06
 
 def main():
     # Path of the train set, test set and save path.
-    # train_path=input("Enter the train path: ")
-    # test_path=input("Enter the test path: ")
-    # save_path=input("Enter the save path: ")
-    train_path='Data/one_month_1.csv'
-    test_path='Data/one_day_1.csv'
-    save_path='Data/pred.txt'
+    train_path='cal_train.csv'
+    test_path='cal_test.csv'
+    save_path='cal_pred.txt'
+    # train_path='Data/one_month_1.csv'
+    # test_path='Data/one_day_1.csv'
+    # save_path='Data/pred.txt'
 
     # Load the data.
     x_train, y_train = util.load_dataset(train_path)
@@ -36,7 +37,7 @@ def main():
 
     # Define the neural network.
     clf=MLPClassifier(hidden_layer_sizes=(HIDDEN_LAYER_SIZES),activation=ACTIVATION,\
-    solver=SOLVER,max_iter=MAX_ITER,verbose=VERBOSE,alpha=REGULARIZATION)
+    solver=SOLVER,max_iter=MAX_ITER,verbose=VERBOSE,alpha=REGULARIZATION,tol=TOL)
     # clf=MLPRegressor(hidden_layer_sizes=(HIDDEN_LAYER_SIZES),activation=ACTIVATION,\
     # max_iter=MAX_ITER,verbose=VERBOSE,alpha=REGULARIZATION)
 
