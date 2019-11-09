@@ -5,10 +5,10 @@ import util
 import numpy as np
 
 # Parameters used to define the neural network.
-HIDDEN_LAYER_SIZES=(100,100)
+HIDDEN_LAYER_SIZES=(100,100,100,100,100)
 # ACTIVATION='logistic','tanh','relu'
 ACTIVATION='logistic'
-MAX_ITER=1000
+MAX_ITER=10000
 VERBOSE=True
 REGULARIZATION=1e-05
 SOLVER='adam'
@@ -16,9 +16,12 @@ SOLVER='adam'
 
 def main():
     # Path of the train set, test set and save path.
-    train_path=input("Enter the train path: ")
-    test_path=input("Enter the test path: ")
-    save_path=input("Enter the save path: ")
+    # train_path=input("Enter the train path: ")
+    # test_path=input("Enter the test path: ")
+    # save_path=input("Enter the save path: ")
+    train_path='Data/one_month_1.csv'
+    test_path='Data/one_day_1.csv'
+    save_path='Data/pred.txt'
 
     # Load the data.
     x_train, y_train = util.load_dataset(train_path)
@@ -49,6 +52,7 @@ def main():
     score=np.sum([1 for i in range(len(y_test)) if prediction[i]==y_test[i]])
     # score=np.sum([1 for i in range(len(y_test)) if np.isclose(prediction[i],y_test[i])])
     print("Correct prediction rate is: "+str(score)+"/"+str(len(y_test))+"="+str(score/len(y_test)))
+    return score/len(y_test)
 
 if __name__ == '__main__':
     main()
