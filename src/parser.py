@@ -113,7 +113,7 @@ def paser(raw_path, fluency_path):
 
     # create a output panda dataframe
     output = pd.DataFrame(list(zip(parsed_CommentCount,parsed_BodyLength, parsed_UserReputation,parsed_UserViews,parsed_UserUpVotes,parsed_UserDownVotes,codes_inline,codes_pre_count,codes_pre_line,hyperlinks,edits,labels)), columns =['parsed_CommentCount','parsed_BodyLength', 'parsed_UserReputation','parsed_UserViews','parsed_UserUpVotes','parsed_UserDownVotes','InlineCode','BlockCode','BlockCodeLine','Hyperlink','Edit','Label'])
-    output = pd.concat([df_fluency, output], axis=1, sort=False) # include the fluency cols
+    output = pd.concat([df_fluency['unigramCost'],df_fluency['bigramCost'], output], axis=1, sort=False) # include the fluency cols
 
 
     output_name = csv_name.replace('.csv','_merged.csv')
