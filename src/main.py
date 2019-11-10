@@ -1,8 +1,8 @@
 import numpy as np
 import util
 import logistic
-import matplotlib.pyplot as plt
-from decimal import Decimal
+from sklearn.metrics import classification_report
+from sklearn.metrics import confusion_matrix
 
 def main(train_path, valid_path, save_path):
     """Problem: Logistic regression with Newton's Method.
@@ -31,8 +31,9 @@ def main(train_path, valid_path, save_path):
     y_pred_prob = clf.predict(x_valid)
     y_pred = y_pred_prob.round()
 
-    acc = 1-np.sum(np.abs(y_pred-y_valid))/y_pred.shape[0]
-    print("The accuracy is:",acc)
+    print(classification_report(y_valid, y_pred))
+    print(confusion_matrix(y_valid, y_pred))
+    print(np.sum(y_valid))
 
     np.savetxt(save_path, y_pred)
 
