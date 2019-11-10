@@ -12,17 +12,30 @@ def main(train_path, valid_path, save_path):
         valid_path: Path to CSV file containing dataset for validation.
         save_path: Path to save predicted probabilities using np.savetxt().
     """
-    x_train, y_train = util.load_dataset(train_path, add_intercept=True)
+    x_train, y_train = util.load_dataset(train_path, add_intercept=False)
+    x_valid, y_valid = util.load_dataset(valid_path, add_intercept=False)
 
-    # *** START CODE HERE ***
-    clf = logistic.LogisticRegression()
+    # normalize the data:
+    x_train = (x_train-np.mean(x_train, axis=0))/np.std(x_train, axis=0)
+    x_valid = (x_valid - np.mean(x_valid, axis=0)) / np.std(x_valid, axis=0)
+
+    # add intercept for logistic regression:
+    x_train = util.add_intercept(x_train)
+    x_valid = util.add_intercept(x_valid)
+
+
+    clf = logistic.LogisticRegression(step_size=1, max_iter=100000000)
     clf.fit(x_train, y_train)
 
-    x_valid, y_valid = util.load_dataset(valid_path, add_intercept=True)
-    y_pre = clf.predict(x_valid)
-    np.savetxt(save_path, y_pre)
-    # *** END CODE HERE ***
+
+    y_pred_prob = clf.predict(x_valid)
+    y_pred = y_pred_prob.round()
+
+    acc = np.sum(np.abs(y_pred-y_valid))/y_pred.shape[0]
+    print("The accuracy is:",acc)
+
+    np.savetxt(save_path, y_pred)
 
 
 if __name__ == '__main__':
-    main(train_path, valid_path, save_path)
+    main("../Example Data/one_month_2018-04-01_2018-05-01_merged.csv", "../Example Data/one_day_2018-06-01_2018-06-02_merged.csv", "prediction_output.txt")
