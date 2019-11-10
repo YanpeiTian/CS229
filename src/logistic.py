@@ -10,7 +10,7 @@ class LogisticRegression:
         > clf.fit(x_train, y_train)
         > clf.predict(x_eval)
     """
-    def __init__(self, step_size=1, max_iter=1000000, eps=1e-5,
+    def __init__(self, step_size=1, max_iter=100000000, eps=1e-5,
                  theta_0=None, verbose=True):
         """
         Args:
