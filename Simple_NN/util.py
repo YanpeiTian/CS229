@@ -19,8 +19,8 @@ def load_dataset(csv_path, label_col='Label'):
         headers = csv_fh.readline().strip().split(',')
 
     # Load features and labels
-    x_cols = [i for i in range(len(headers)) if headers[i]!='Label']
-    l_cols = [i for i in range(len(headers)) if headers[i] == 'Label']
+    x_cols = [i for i in range(1,len(headers)) if headers[i]!='Label']
+    l_cols = [i for i in range(1,len(headers)) if headers[i] == 'Label']
     inputs = np.loadtxt(csv_path, delimiter=',', skiprows=1, usecols=x_cols)
     labels = np.loadtxt(csv_path, delimiter=',', skiprows=1, usecols=l_cols)
 
