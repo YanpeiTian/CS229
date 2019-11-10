@@ -31,11 +31,11 @@ def main(train_path, valid_path, save_path):
     y_pred_prob = clf.predict(x_valid)
     y_pred = y_pred_prob.round()
 
-    acc = np.sum(np.abs(y_pred-y_valid))/y_pred.shape[0]
+    acc = 1-np.sum(np.abs(y_pred-y_valid))/y_pred.shape[0]
     print("The accuracy is:",acc)
 
     np.savetxt(save_path, y_pred)
 
 
 if __name__ == '__main__':
-    main("../Example Data/one_month_2018-04-01_2018-05-01_merged.csv", "../Example Data/one_day_2018-06-01_2018-06-02_merged.csv", "prediction_output.txt")
+    main("../Example Data/one_day_2018-03-01_2018-03-02_merged.csv", "../Example Data/one_day_2018-06-01_2018-06-02_merged.csv", "prediction_output.txt")
