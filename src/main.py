@@ -14,10 +14,12 @@ def main(train_path, valid_path, save_path):
     """
     x_train, y_train = util.load_dataset(train_path, add_intercept=False)
     x_valid, y_valid = util.load_dataset(valid_path, add_intercept=False)
+    x_train = x_train[:, 1:]
+    x_valid = x_valid[:, 1:]
 
-    # normalize the data:
-    x_train = (x_train-np.mean(x_train, axis=0))/np.std(x_train, axis=0)
-    x_valid = (x_valid - np.mean(x_valid, axis=0)) / np.std(x_valid, axis=0)
+    # normalize the data: (skip binary features)
+    x_train[:, :-1] = (x_train[:, :-1] - np.mean(x_train[:, :-1], axis=0)) / np.std(x_train[:, :-1], axis=0)
+    x_valid[:, :-1] = (x_valid[:, :-1] - np.mean(x_valid[:, :-1], axis=0)) / np.std(x_valid[:, :-1], axis=0)
 
     # add intercept for logistic regression:
     x_train = util.add_intercept(x_train)
@@ -40,3 +42,4 @@ def main(train_path, valid_path, save_path):
 
 if __name__ == '__main__':
     main("../Example Data/one_day_2018-03-01_2018-03-02_merged.csv", "../Example Data/one_day_2018-06-01_2018-06-02_merged.csv", "prediction_output.txt")
+    # main("../Example Data/one_month_2018-04-01_2018-05-01_merged.csv", "../Example Data/one_day_2018-03-01_2018-03-02_merged.csv", "prediction_output.txt")

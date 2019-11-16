@@ -1,0 +1,14 @@
+iteration,remove_feature_index,remove_feature,accuracy
+1,0,unigramCost,0.6584362139917695
+2,12,Edit,0.6604938271604939
+3,9,BlockCode,0.6625514403292181
+3,10,BlockCodeLine,0.6625514403292181
+4,1,bigramCost,0.6707818930041153
+5,6,parsed_UserUpVotes,0.668724279835391
+6,5,parsed_UserViews,0.6625514403292181
+7,11,Hyperlink,0.6604938271604939
+8,7,parsed_UserDownVotes,0.6522633744855967
+9,3,parsed_BodyLength,0.6440329218106996
+10,2,parsed_CommentCount,0.5925925925925926
+10,4,parsed_UserReputation,0.5925925925925926
+10,8,InlineCode,0.5925925925925926
