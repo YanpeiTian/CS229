@@ -5,10 +5,151 @@ import pandas as pd
 import numpy as np
 
 
+# following are for bert:
+import torch
+from torch.utils.data import TensorDataset, DataLoader, RandomSampler, SequentialSampler
+from keras.preprocessing.sequence import pad_sequences
+from sklearn.model_selection import train_test_split
+from pytorch_pretrained_bert import BertTokenizer, BertConfig, BertModel
+from pytorch_pretrained_bert import BertAdam, BertForSequenceClassification
+from tqdm import tqdm, trange
+import io
+import matplotlib.pyplot as plt
+#% matplotlib inline
+
+from bs4 import BeautifulSoup
+
+
+
+def clear_text(body):
+    """
+    clear the hyper links in a paragraph
+    :param body:
+    :return:
+    """
+    soup = BeautifulSoup(body, features="html.parser")
+    for a in soup.findAll('a'):
+        del a['href']
+    return str(soup)
+
+
+def bert_feature_extraction(bodys):
+    """
+
+    :param bodys: body coloumn in data frames read from csv
+    :return: list of pytorch vectors
+    """
+
+    print("extracting feature for bert..")
+    print("input to bert shape: ", bodys.shape)
+
+    # Create sentence and label lists
+    #bodys = df.Body.values
+
+    # We need to add special tokens at the beginning and end of each sentence for BERT to work properly
+    bodys = ["[CLS] " + body + " [SEP]" for body in bodys]
+
+    tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', do_lower_case=True)
+
+    tokenized_texts = [tokenizer.tokenize(sent) for sent in bodys]
+
+    input_ids = [tokenizer.convert_tokens_to_ids(x) for x in tokenized_texts]
+
+    # Pad our input tokens
+    input_ids = pad_sequences(input_ids, maxlen=512, dtype="long", truncating="post", padding="post")
+
+    # Create attention masks
+    attention_masks = []
+
+    # Create a mask of 1s for each token followed by 0s for padding
+    for seq in input_ids:
+        seq_mask = [float(i > 0) for i in seq]
+        attention_masks.append(seq_mask)
+
+
+    # Convert inputs to PyTorch tensors
+    tokens_tensor = torch.tensor([input_ids])
+    masks_tensors = torch.tensor([attention_masks])
+
+    # Load pre-trained model (weights)
+    model = BertModel.from_pretrained('bert-base-uncased')
+
+    # Put the model in "evaluation" mode, meaning feed-forward operation.
+    model.eval()
+
+
+
+    # find the vector representation for each text body
+    text_vectors = []
+    for i in range(tokens_tensor.shape[1]):  # for every text bodys:
+        encoded_layers = None
+        with torch.no_grad():
+            # encoded_layers, _ = model(tokens_tensor, token_type_ids=None, attention_mask=masks_tensors)
+            encoded_layers, _ = model(tokens_tensor[:, i, :], token_type_ids=None,
+                                      attention_mask=masks_tensors[:, i, :])
+
+        # Concatenate the tensors for all layers. We use `stack` here to
+        # create a new dimension in the tensor.
+        token_embeddings = torch.stack(encoded_layers, dim=0)
+
+        # token_embeddings.size()
+
+        # Remove dimension 1, the "batches".
+        token_embeddings = torch.squeeze(token_embeddings, dim=1)
+
+        # token_embeddings.size()
+
+        # Finally, we can switch around the "layers" and "tokens" dimensions with permute.
+        # Swap dimensions 0 and 1.
+        token_embeddings = token_embeddings.permute(1, 0, 2)
+        # token_embeddings.size()
+
+        # Sentence Vectors To get a single vector for our entire sentence we have multiple application-dependent strategies, but a simple approach is to average the second to last hiden layer of each token producing a single 768 length vector.
+        # `encoded_layers` has shape [12 x 1 x 22 x 768]
+
+        # `token_vecs` is a tensor with shape [22 x 768]
+        token_vecs = encoded_layers[-2][0]  # second to last layer
+        # print(token_vecs.shape)
+
+        # Calculate the average of all 512 token vectors.
+        sentence_embedding = torch.mean(token_vecs, dim=0)
+        # print (sentence_embedding)
+
+        print("processed body: ", i)
+
+
+        text_vectors.append(sentence_embedding)
+
+    # stack all vectors together
+    text_vectors = torch.stack(text_vectors, dim=0)
+
+    # convert the pytorch tensor to data frames
+    df_text_vectors = text_vectors.numpy()
+    df_text_vectors = pd.DataFrame(df_text_vectors)
+
+    return df_text_vectors
+
+
+
+
+
+
 def paser(raw_path, fluency_path):
     csv_name = raw_path
     df = pd.read_csv(csv_name)
     df_fluency = pd.read_csv(fluency_path)
+
+    #################
+    # find the bert vectors:
+    # df = df.head(10)
+    # df_fluency = df_fluency.head(10)
+    df_berts_a = bert_feature_extraction(df.Body.values) # extract bert feature from ans
+    df_berts_q = bert_feature_extraction(df.ParentBody.values) # from question body
+
+
+
+    #################
+
 
 
     # code
@@ -113,7 +254,7 @@ def paser(raw_path, fluency_path):
 
     # create a output panda dataframe
     output = pd.DataFrame(list(zip(parsed_CommentCount,parsed_BodyLength, parsed_UserReputation,parsed_UserViews,parsed_UserUpVotes,parsed_UserDownVotes,codes_inline,codes_pre_count,codes_pre_line,hyperlinks,edits,labels)), columns =['parsed_CommentCount','parsed_BodyLength', 'parsed_UserReputation','parsed_UserViews','parsed_UserUpVotes','parsed_UserDownVotes','InlineCode','BlockCode','BlockCodeLine','Hyperlink','Edit','Label'])
-    output = pd.concat([df_fluency['unigramCost'],df_fluency['bigramCost'], output], axis=1, sort=False) # include the fluency cols
+    output = pd.concat([df_berts_a, df_berts_q, df_fluency['unigramCost'],df_fluency['bigramCost'], output], axis=1, sort=False) # include the fluency cols
 
 
     output_name = csv_name.replace('.csv','_merged.csv')
@@ -126,7 +267,11 @@ def paser(raw_path, fluency_path):
 if __name__ == '__main__':
     paser("../Example Data/one_day_2018-03-01_2018-03-02.csv", "../Language Model/one_day_2018-03-01_2018-03-02_fluency.csv")
     paser("../Example Data/one_day_2018-06-01_2018-06-02.csv", "../Language Model/one_day_2018-06-01_2018-06-02_fluency.csv")
-    paser("../Example Data/one_month_2018-04-01_2018-05-01.csv", "../Language Model/one_month_2018-04-01_2018-05-01_fluency.csv")
+    # paser("../Example Data/one_month_2018-04-01_2018-05-01.csv", "../Language Model/one_month_2018-04-01_2018-05-01_fluency.csv")
+
+
+
+
 
 
 
