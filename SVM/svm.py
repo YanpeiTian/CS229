@@ -1,26 +1,14 @@
-from sklearn.neural_network import MLPClassifier
-from sklearn.neural_network import MLPRegressor
+from sklearn import svm
 from sklearn.preprocessing import StandardScaler
 import util
 import numpy as np
 
-# Parameters used to define the neural network.
-HIDDEN_LAYER_SIZES=(500,500,)
-# ACTIVATION='logistic','tanh','relu'
-ACTIVATION='logistic'
-MAX_ITER=10000
-VERBOSE=True
-REGULARIZATION=1e-04
-SOLVER='adam'
-# SOLVER='lbfgs','sgd','adam'
-TOL=1e-06
+KERNEL='rbf'
 
 def main():
     # Path of the train set, test set and save path.
-    # train_path='cal_train.csv'
-    # test_path='cal_test.csv'
-    # save_path='cal_pred.txt'
     train_path='Data/one_month_2018-04-01_2018-05-01_merged.csv'
+    # train_path='Data/one_day_2018-03-01_2018-03-02_merged.csv'
     test_path='Data/one_day_2018-06-01_2018-06-02_merged.csv'
     save_path='Data/pred.txt'
 
@@ -28,18 +16,13 @@ def main():
     x_train, y_train = util.load_dataset(train_path)
     x_test, y_test = util.load_dataset(test_path)
 
-    # Because we are using a neural network, standardize the data.
-    scaler_x=StandardScaler()
-    scaler_x.fit(x_train)
-    x_train=scaler_x.transform(x_train)
-    x_test=scaler_x.transform(x_test)
+    # scaler_x=StandardScaler()
+    # scaler_x.fit(x_train)
+    # x_train=scaler_x.transform(x_train)
+    # x_test=scaler_x.transform(x_test)
 
-
-    # Define the neural network.
-    clf=MLPClassifier(hidden_layer_sizes=(HIDDEN_LAYER_SIZES),activation=ACTIVATION,\
-    solver=SOLVER,max_iter=MAX_ITER,verbose=VERBOSE,alpha=REGULARIZATION,tol=TOL)
-    # clf=MLPRegressor(hidden_layer_sizes=(HIDDEN_LAYER_SIZES),activation=ACTIVATION,\
-    # max_iter=MAX_ITER,verbose=VERBOSE,alpha=REGULARIZATION)
+    # Define the SVM
+    clf=svm.SVC(kernel=KERNEL)
 
     # Training.
     clf.fit(x_train,y_train)
