@@ -20,6 +20,11 @@ import matplotlib.pyplot as plt
 from bs4 import BeautifulSoup
 
 
+# following are the pypi bert embeddings:
+from bert_embedding import BertEmbedding
+
+
+
 
 def clear_text(body):
     """
@@ -29,25 +34,72 @@ def clear_text(body):
     """
     soup = BeautifulSoup(body, features="html.parser")
     for a in soup.findAll('a'):
-        del a['href']
+        # print(a)
+        # del a['href']
+        a.replaceWithChildren()
+
+    # for code in soup.findAll('code'):
+    #     # print(a)
+    #     # del a['href']
+    #     print("888888888888888888")
+    #     print(code)
+    #     print("888888888888888888")
+    #     #code.replaceWithChildren()
+    #
+    #     del code
+
     return str(soup)
+
+
+def bert_feature_extraction_pypi(bodys):
+    # used the new word embedding package:
+    print("extracting feature for bert features..")
+    #print("The shape of input: ", bodys.shape)
+
+
+    # We need to add special tokens at the beginning and end of each sentence for BERT to work properly
+    bodys = [clear_text(body) for body in bodys] # clear the hyperlinks
+
+    bert_embedding = BertEmbedding(max_seq_length=512)
+
+    result = bert_embedding(bodys)
+
+    whole_body_vectors = []
+    for i in range(len(result)): # for every body
+        token_vectors = result[i][1] # should be vectors of length (768,)
+        token_vectors = np.stack(token_vectors, axis=0) # stack all token's vector together
+
+        whole_body_vector = np.mean(token_vectors, axis=0) # take average of all tokens
+        whole_body_vectors.append(whole_body_vector)
+    # print(len(whole_body_vectors), whole_body_vectors[0].shape)
+
+
+
+    # stack all body vectors together and become a numpy matrix
+    whole_body_vectors = np.stack(whole_body_vectors, axis=0)
+    # convert the np matrix to be panda dataframe
+    print(whole_body_vectors.shape)
+    df_text_vectors = pd.DataFrame(whole_body_vectors)
+
+    return df_text_vectors
+
 
 
 def bert_feature_extraction(bodys):
     """
 
     :param bodys: body coloumn in data frames read from csv
-    :return: list of pytorch vectors
+    :return: panda dataframes
     """
 
     print("extracting feature for bert..")
-    print("input to bert shape: ", bodys.shape)
+    print("size of input: ", len(bodys))
 
     # Create sentence and label lists
     #bodys = df.Body.values
 
     # We need to add special tokens at the beginning and end of each sentence for BERT to work properly
-    bodys = ["[CLS] " + body + " [SEP]" for body in bodys]
+    bodys = ["[CLS] " + clear_text(body) + " [SEP]" for body in bodys]
 
     tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', do_lower_case=True)
 
@@ -143,8 +195,23 @@ def paser(raw_path, fluency_path):
     # find the bert vectors:
     # df = df.head(10)
     # df_fluency = df_fluency.head(10)
-    df_berts_a = bert_feature_extraction(df.Body.values) # extract bert feature from ans
-    df_berts_q = bert_feature_extraction(df.ParentBody.values) # from question body
+
+    bodys_a = []
+    bodys_q = []
+    for i in range(df.shape[0]): # clean the instances without selected best answer
+
+        accepted_id = df['ParentAcceptedAnswerId'][i]  # float (np.nan)
+        if np.isnan(accepted_id):
+            #labels.append(np.nan)
+            continue # if the question owner did not select a preferred answer post, do not use this instance
+        else:
+            bodys_a.append(df['Body'][i])
+            bodys_q.append(df['ParentBody'][i])
+
+
+    # extract bert features for both question and ans
+    df_berts_a = bert_feature_extraction(bodys_a) # extract bert feature from ans
+    df_berts_q = bert_feature_extraction(bodys_q) # from question body
 
 
 
@@ -265,9 +332,30 @@ def paser(raw_path, fluency_path):
 
 
 if __name__ == '__main__':
-    paser("../Example Data/one_day_2018-03-01_2018-03-02.csv", "../Language Model/one_day_2018-03-01_2018-03-02_fluency.csv")
+    #paser("../Example Data/one_day_2018-03-01_2018-03-02.csv", "../Language Model/one_day_2018-03-01_2018-03-02_fluency.csv")
     paser("../Example Data/one_day_2018-06-01_2018-06-02.csv", "../Language Model/one_day_2018-06-01_2018-06-02_fluency.csv")
     # paser("../Example Data/one_month_2018-04-01_2018-05-01.csv", "../Language Model/one_month_2018-04-01_2018-05-01_fluency.csv")
+
+    #body = "<p>You can use the <a href=""https://en.m.wikipedia.org/wiki/Sieve_of_Eratosthenes"" rel=""nofollow noreferrer"">Sieve of Eratosthenes</a>.  It's a much faster method to find the first <em>n</em> prime numbers.</p>"
+
+    # with open('/Users/yanhaojiang/Desktop/body2.txt', 'r') as file:
+    #     body2 = file.read()
+    #print(body2)
+    # print(body)
+    #print("-------------------------------")
+    # print(body)
+    # print()
+    # print(clear_text(body))
+    #
+    # print('-------')
+
+    #
+    # bodys1= ["o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o o  ", "q q q q q q q q", "WWW", body]
+    #
+    # bodys = ["William Shakespeare was born in Stratford-upon-Avon on April 23, 1564 to his parents Mary Arden and John Shakespeare. Shakespeare was the third child of eight. He was the oldest surviving son, because in the time Shakespeare was born there was a plague going around called the Bubonic Plague. This is also known as Black Death because it killed so many people in the middle ages. It supposedly killed about one out of every seven people. Not very much is known about Shakespeare’s early years in life, the only way historians found about his early life were based on church records, and court settlements. It was thought that Shakespeare got his education at a grammar school called King Edward VI School Stratford-upon-Avon. When Shakespeare was eighteen, he married a woman who was eight years older than him, her name was Anne Hathaway. Together they had three children. The first was a girl named Susanna and then two years later they had twins, one boy name Hamnet and a daughter named Judith. Hamnet died at the age of 11 of unknown causes. After the death of Shakespeare’s only son supposedly Shakespeare was never the same. Historians have no clue what happened in Shakespeare’s life between the years of 1585-1592. Historians call this time of his life the “lost years.” No one is really sure when Shakespeare started writing but they think it was in 1592 when some of his plays were starting to be performed on stage in London. Hamlet was first printed in 1601 and could possibly be one of Shakespeare’s most famous stories. This story is pretty much about Prince Hamlet planning revenge on Claudius for murdering King Hamlet. When he does kill Claudius he takes over the throne of his father. One of the most famous quotes from the book Hamlet written by Shakespeare is, “To be or not to be that is the question: Whether ’tis nobler in the mind to suffer, the slings and arrows of outrageous fortune, Or to take arms against a sea of troubles and by opposing, end them.” This is Shakespeare’s longest narrative poem, and maybe one of his most tragic, but the story Romeo and Juliet is right up there with Hamlet."]
+    #
+    # print("text length",len(bodys[0]))
+    # bert_feature_extraction_pypi(bodys1)
 
 
 
