@@ -7,14 +7,18 @@ import numpy as np
 
 # following are for bert:
 import torch
-from torch.utils.data import TensorDataset, DataLoader, RandomSampler, SequentialSampler
+
 from keras.preprocessing.sequence import pad_sequences
-from sklearn.model_selection import train_test_split
+
 from pytorch_pretrained_bert import BertTokenizer, BertConfig, BertModel
-from pytorch_pretrained_bert import BertAdam, BertForSequenceClassification
-#% matplotlib inline
+
 
 from bs4 import BeautifulSoup
+
+
+
+
+
 
 
 def clear_text(body):
@@ -25,41 +29,77 @@ def clear_text(body):
     """
     soup = BeautifulSoup(body, features="html.parser")
     for a in soup.findAll('a'):
-        # print(a)
-        # del a['href']
+
         a.replaceWithChildren()
 
-    # for code in soup.findAll('code'):
-    #     # print(a)
-    #     # del a['href']
-    #     print("888888888888888888")
-    #     print(code)
-    #     print("888888888888888888")
-    #     #code.replaceWithChildren()
-    #
-    #     del code
 
     return str(soup)
 
-def bert_feature_extraction(bodys):
+
+
+def bert_feature_extraction(bodys_a, bodys_q):
     """
 
     :param bodys: body coloumn in data frames read from csv
     :return: panda dataframes
     """
-
     print("extracting feature for bert..")
-    print("size of input: ", len(bodys))
-
-    # Create sentence and label lists
-    #bodys = df.Body.values
+    print("size of input: ", len(bodys_a))
 
     # We need to add special tokens at the beginning and end of each sentence for BERT to work properly
-    bodys = ["[CLS] " + clear_text(body) + " [SEP]" for body in bodys]
-
     tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', do_lower_case=True)
 
-    tokenized_texts = [tokenizer.tokenize(sent) for sent in bodys]
+    # tokenize ans bodys:
+    # bodys_a = ["[CLS] " + clear_text(body) + " [SEP]" for body in bodys_a]
+    bodys_a = [clear_text(body) for body in bodys_a]
+    tokenized_texts_a = [tokenizer.tokenize(sent) for sent in bodys_a]
+
+    # tokenize question bodys:
+    #bodys_q = ["[CLS] " + clear_text(body) + " [SEP]" for body in bodys_q]
+    bodys_q = [clear_text(body) for body in bodys_q]
+    tokenized_texts_q = [tokenizer.tokenize(sent) for sent in bodys_q]
+
+    # now concatenate both question and ans together, cut off extra words.
+    # Note the min would be 200 words (if question or ans is more than this)
+    tokenized_texts = []
+    for i in range(len(tokenized_texts_a)):
+        a = tokenized_texts_a[i]
+        q = tokenized_texts_q[i]
+        len_a = len(a)
+        len_q = len(q)
+
+        allowed_a = 0
+        allowed_q = 0
+
+        # case when any of two bodys < 200
+        if min(len_a, len_q) <= 200:
+            if len_a < len_q:
+                allowed_a = len_a
+                allowed_q = 512 - allowed_a
+            else:
+                allowed_q = len_q
+                allowed_a = 512 - allowed_q
+
+        else: # both need to be cut off:
+
+            # distribute 512 by propotion, but either of them can be smaller than 200 words
+            if len_a/(len_q+len_a) < 200/512:
+                allowed_a = 200
+                allowed_q = 512-200
+            elif len_q/(len_q+len_a) < 200/512:
+                allowed_q = 200
+                allowed_a = 512-200
+            else:
+                allowed_a = int(len_a*512/(len_q+len_a))
+                allowed_q = int(len_q * 512 / (len_q + len_a))
+
+        # now combine ans and question together
+        allowed_a = int(allowed_a-2)
+        allowed_q = int(allowed_q-2) # minus 2 to leave some slacks...
+
+        tokenized_texts.append(["[CLS]"] + a[:min(allowed_a, len_a)] + q[:min(allowed_q, len_q)] + ["[SEP]"])
+
+
 
     input_ids = [tokenizer.convert_tokens_to_ids(x) for x in tokenized_texts]
 
@@ -96,6 +136,8 @@ def bert_feature_extraction(bodys):
             encoded_layers, _ = model(tokens_tensor[:, i, :], token_type_ids=None,
                                       attention_mask=masks_tensors[:, i, :])
 
+
+
         # Concatenate the tensors for all layers. We use `stack` here to
         # create a new dimension in the tensor.
         token_embeddings = torch.stack(encoded_layers, dim=0)
@@ -125,6 +167,8 @@ def bert_feature_extraction(bodys):
 
         print("processed body: ", i)
 
+
+
         text_vectors.append(sentence_embedding)
 
     # stack all vectors together
@@ -148,8 +192,8 @@ def paser(raw_path, fluency_path):
 
     #################
     # find the bert vectors:
-    # df = df.head(20)
-    # df_fluency = df_fluency.head(20)
+    # df = df.head(10)
+    # df_fluency = df_fluency.head(10)
 
     bodys_a = []
     bodys_q = []
@@ -165,11 +209,7 @@ def paser(raw_path, fluency_path):
 
 
     # extract bert features for both question and ans
-    df_berts_a = bert_feature_extraction(bodys_a) # extract bert feature from ans
-    df_berts_q = bert_feature_extraction(bodys_q) # from question body
-
-
-
+    df_berts = bert_feature_extraction(bodys_a, bodys_q) # we pass in both ans and question bodys into bert. concatnate together in the bert feature extraction function
     #################
 
 
@@ -276,10 +316,10 @@ def paser(raw_path, fluency_path):
 
     # create a output panda dataframe
     output = pd.DataFrame(list(zip(parsed_CommentCount,parsed_BodyLength, parsed_UserReputation,parsed_UserViews,parsed_UserUpVotes,parsed_UserDownVotes,codes_inline,codes_pre_count,codes_pre_line,hyperlinks,edits,labels)), columns =['parsed_CommentCount','parsed_BodyLength', 'parsed_UserReputation','parsed_UserViews','parsed_UserUpVotes','parsed_UserDownVotes','InlineCode','BlockCode','BlockCodeLine','Hyperlink','Edit','Label'])
-    output = pd.concat([df_berts_a, df_berts_q, df_fluency['unigramCost'],df_fluency['bigramCost'], output], axis=1, sort=False) # include the fluency cols
+    output = pd.concat([df_berts, df_fluency['unigramCost'],df_fluency['bigramCost'], output], axis=1, sort=False) # include the fluency cols
 
 
-    output_name = csv_name.replace('.csv','_merged.csv')
+    output_name = csv_name.replace('.csv','_concatenated.csv')
     output.to_csv(output_name)
 
 
@@ -287,8 +327,14 @@ def paser(raw_path, fluency_path):
 
 
 if __name__ == '__main__':
-    #paser("../Example Data/one_day_2018-03-01_2018-03-02.csv", "../Language Model/one_day_2018-03-01_2018-03-02_fluency.csv")
-    #paser("../Example Data/one_day_2018-06-01_2018-06-02.csv", "../Language Model/one_day_2018-06-01_2018-06-02_fluency.csv")
+    # paser("../Example Data/one_day_2018-03-01_2018-03-02.csv", "../Language Model/one_day_2018-03-01_2018-03-02_fluency.csv")
+    # paser("../Example Data/one_day_2018-06-01_2018-06-02.csv", "../Language Model/one_day_2018-06-01_2018-06-02_fluency.csv")
+    # paser("../Example Data/one_month_2018-04-01_2018-05-01.csv", "../Language Model/one_month_2018-04-01_2018-05-01_fluency.csv")
+
+
+    paser("one_day_2018-03-01_2018-03-02.csv", "one_day_2018-03-01_2018-03-02_fluency.csv")
+    paser("one_day_2018-06-01_2018-06-02.csv", "one_day_2018-06-01_2018-06-02_fluency.csv")
+    paser("one_month_2018-04-01_2018-05-01.csv", "one_month_2018-04-01_2018-05-01_fluency.csv")
     paser("three_month_2018-01-01_2018-04-01.csv", "three_month_2018-01-01_2018-04-01_fluency.csv")
 
 

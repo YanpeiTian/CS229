@@ -7,22 +7,22 @@ KERNEL='rbf'
 
 def main():
     # Path of the train set, test set and save path.
-    train_path='Data/one_month_2018-04-01_2018-05-01_merged.csv'
-    # train_path='Data/one_day_2018-03-01_2018-03-02_merged.csv'
-    test_path='Data/one_day_2018-06-01_2018-06-02_merged.csv'
-    save_path='Data/pred.txt'
+    train_path='one_month_2018-04-01_2018-05-01_merged.csv'
+    # train_path='one_day_2018-03-01_2018-03-02_merged.csv'
+    test_path='one_day_2018-06-01_2018-06-02_merged.csv'
+    save_path='pred.txt'
 
     # Load the data.
     x_train, y_train = util.load_dataset(train_path)
     x_test, y_test = util.load_dataset(test_path)
 
-    # scaler_x=StandardScaler()
-    # scaler_x.fit(x_train)
-    # x_train=scaler_x.transform(x_train)
-    # x_test=scaler_x.transform(x_test)
+    scaler_x=StandardScaler()
+    scaler_x.fit(x_train)
+    x_train=scaler_x.transform(x_train)
+    x_test=scaler_x.transform(x_test)
 
     # Define the SVM
-    clf=svm.SVC(kernel=KERNEL)
+    clf=svm.SVC(kernel=KERNEL,verbose=True)
 
     # Training.
     clf.fit(x_train,y_train)
