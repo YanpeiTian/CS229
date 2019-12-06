@@ -3,7 +3,7 @@ import wordsegUtil
 import pandas as pd
 import numpy as np
 
-FILE_PATH='one_month_2018-04-01_2018-05-01.csv'
+FILE_PATH='/Users/yanhaojiang/Desktop/CS229/Example Data/half_year_2017-07-01_2018-01-01.csv'
 
 # REPL and main entry point
 def repl(unigramCost, bigramCost):
